@@ -6,7 +6,8 @@ setup(
     packages = find_packages(),
     # scripts = ['say_hello.py'],
 
-    install_requires = ['docutils>=0.3'],
+    install_requires = ["docutils>=0.3", "twisted", "soappy",
+        "pyexiv2>=0.2", "simplejson"],
     package_data = {
         # '': ['*.txt', '*.rst'],
     },
