@@ -34,7 +34,7 @@ from twisted.python import log
 from twisted.web import soap
 from twisted.internet import utils, reactor
 
-from eyefilog import tag_photo
+from eyefi.maclog import tag_photo
 
 
 

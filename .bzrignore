@@ -2,3 +2,5 @@
 *.pyc
 pictures/*
 ./build
+./dist
+./eyefi.egg-info

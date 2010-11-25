@@ -1,1 +1,20 @@
 EyeFi Server Framework
+======================
+
+Requirements
+-------------
+
+* twisted core and web for the network and protocol handling
+* soappy for the protocol
+* simplejson for the google api
+* pyexiv > 0.2 for tagging images. http://tilloy.net/dev/pyexiv2/.
+  Ubuntu packages are available at
+  https://launchpad.net/~pyexiv2-developers/+archive/ppa
+
+
+Installation
+------------
+
+* # python setup.py install
+  or
+  # python setup.py develop

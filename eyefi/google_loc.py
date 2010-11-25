@@ -41,8 +41,7 @@ def google_loc(*macs, **args):
     d.addCallback(simplejson.loads)
     return d
 
-
-if __name__ == '__main__':
+def main():
     from twisted.internet import reactor
     from twisted.python import log
     import sys
@@ -50,3 +49,6 @@ if __name__ == '__main__':
     google_loc(sys.argv[1:], request_address=True).addBoth(
             log.msg).addBoth(lambda e: reactor.callLater(0, reactor.stop))
     reactor.run()
+
+if __name__ == '__main__':
+    main()

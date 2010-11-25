@@ -20,8 +20,9 @@
 
 import os
 
-from google_loc import google_loc
-from exif_gps import write_gps
+from eyefi.google_loc import google_loc
+from eyefi.exif_gps import write_gps
+
 
 def mac_fmt(mac):
     return ":".join(mac[2*i:2*i+2] for i in range(6))
@@ -85,8 +86,7 @@ def tag_photo(photoname, log):
             loc.addCallback(write_loc, photoname)
             return photos[name], loc
 
-
-if __name__ == '__main__':
+def main():
     import sys
     from twisted.internet import reactor
     from twisted.python import log
@@ -96,3 +96,6 @@ if __name__ == '__main__':
     d.addBoth(log.msg).addBoth(lambda e: reactor.callLater(0,
         reactor.stop))
     reactor.run()
+
+if __name__ == '__main__':
+    main()

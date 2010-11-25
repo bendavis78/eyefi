@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/twistd -ny
 
 # EyeFi Python Server
 #
@@ -17,5 +17,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from twisted.application import service, internet
+from eyefi.server import eyefi_site
 
-import flickrapi
+application = service.Application("EyeFi Server")
+site = eyefi_site(
+    key={"0018564167f0": "31208d34561045b53e60a70f16c0eb9c"},
+    output="pictures", macfolder=False, run=None, geotag=True)
+service = internet.TCPServer(59278, site)
+service.setServiceParent(application)
+
+# vim: ai sts=4 sw=4 expandtab syntax=python
