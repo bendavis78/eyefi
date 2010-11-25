@@ -56,10 +56,12 @@ def checksum(data, key):
 
 
 class EyeFiServer(soap.SOAPPublisher):
-    def __init__(self, key, output, run=None, geotag=False):
+    def __init__(self, key, output, macfolder=False, run=None,
+            geotag=False):
         soap.SOAPPublisher.__init__(self)
         self.key = key
         self.output = output
+        self.macfolder = macfolder
         self.run = run
         self.geotag = geotag
         self.snonces = {}
@@ -118,8 +120,13 @@ class EyeFiServer(soap.SOAPPublisher):
         if got == want:
             tar = StringIO.StringIO(form['FILENAME'][0])
             tarfi = tarfile.open(fileobj=tar)
-            tarfi.extractall(self.output)
-            names = [os.path.join(self.output, name) for name
+            output = self.output
+            if self.macfolder:
+                output = os.path.join(output, macaddress)
+                if not os.access(output, os.R_OK):
+                    os.mkdir(output)
+            tarfi.extractall(output)
+            names = [os.path.join(output, name) for name
                     in tarfi.getnames()]
             reactor.callLater(0, self.handle_upload, names)
             success = "true"
@@ -161,7 +168,7 @@ class EyeFiServer(soap.SOAPPublisher):
     # def soap_UpdateFirmware(self, **k): pass
 
 
-def eyefi_site(key, output, run, geotag):
+def eyefi_site(*a, **k):
     from twisted.web import server, resource
     root = resource.Resource()
     api = resource.Resource()
@@ -170,7 +177,7 @@ def eyefi_site(key, output, run, geotag):
     api.putChild("soap", soap)
     eyefilm = resource.Resource()
     soap.putChild("eyefilm", eyefilm)
-    v1 = EyeFiServer(key, output, run, geotag)
+    v1 = EyeFiServer(*a, **k)
     eyefilm.putChild("v1", v1)
     return server.Site(root)
 
@@ -178,21 +185,25 @@ def eyefi_site(key, output, run, geotag):
 def main():
     import optparse
     parser = optparse.OptionParser()
-    parser.add_option("-p", "--port", help="listen port [%default]")
+    parser.add_option("-p", "--port",
+            help="listen port [%default]")
     parser.add_option("-k", "--key", action="append",
-            help="upload mac:key [%default]")
-    parser.add_option("-o", "--output", help="output dir [%default]")
+            help="mac:key per card [%default]")
+    parser.add_option("-o", "--output",
+            help="output directory [%default]")
+    parser.add_option("-m", "--macfolder", action="store_true",
+            help="use subfolders per card mac [%default]")
     parser.add_option("-g", "--geotag", action="store_true",
             help="geotag in xmp sidecar [%default]")
     parser.add_option("-r", "--run", action="append",
-            help="execute with received files as arguments (multiple, \
-            parallel) [%default]")
+            help="execute command with files as arguments [%default]")
     parser.add_option("-v", "--verbose", action="store_true",
-            help="verbose [%default]")
+            help="be verbose, log to stdout [%default]")
+
     parser.set_defaults(
             key=["0018564167f0:31208d34561045b53e60a70f16c0eb9c"],
             port=59278, verbose=False, output="pictures", run=[],
-            geotag=False)
+            geotag=False, macfolder=False)
     opts, args = parser.parse_args()
 
     if opts.verbose:
@@ -200,7 +211,7 @@ def main():
         log.startLogging(sys.stdout)
     
     site = eyefi_site(dict(v.split(":") for v in opts.key),
-            opts.output, opts.run, opts.geotag)
+            opts.output, opts.macfolder, opts.run, opts.geotag)
     reactor.listenTCP(opts.port, site)
     reactor.run()
 
