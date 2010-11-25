@@ -1,6 +1,7 @@
 *.pyo
 *.pyc
-pictures/*
+./pictures
 ./build
 ./dist
 ./eyefi.egg-info
+./eyefi.conf

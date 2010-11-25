@@ -50,15 +50,10 @@ def checksum(data):
 
 
 class EyeFiServer(soap.SOAPPublisher):
-    def __init__(self, key, output, macfolder=False, run=None,
-            geotag=False):
+    def __init__(self, cards):
         soap.SOAPPublisher.__init__(self)
-        self.key = key
-        self.output = output
-        self.macfolder = macfolder
-        self.run = run
-        self.geotag = geotag
-        self.snonces = {}
+        self.cards = cards
+        reactor.callLater(0, log.msg, "eyefi server configured", cards)
 
     def render(self, request):
         # the upload request is multipart/form-data with file and SOAP:
@@ -80,11 +75,13 @@ class EyeFiServer(soap.SOAPPublisher):
         log.msg("StartSession", macaddress)
         m = hashlib.md5()
         m.update(binascii.unhexlify(macaddress + cnonce +
-            self.key[macaddress])) # fails with keyerror if unknown mac
+            self.cards[macaddress]["uploadkey"]))
+            # fails with keyerror if unknown mac
         credential = m.hexdigest()
-        self.snonces[macaddress] = "%x" % random.getrandbits(128)
+        snonce = "%x" % random.getrandbits(128)
+        self.cards[macaddress]["snonce"] = snonce
         return {"credential": credential,
-                "snonce": self.snonces[macaddress],
+                "snonce": snonce,
                 "transfermode": transfermode,
                 "transfermodetimestamp": transfermodetimestamp,
                 "upsyncallowed": "false"}
@@ -94,8 +91,9 @@ class EyeFiServer(soap.SOAPPublisher):
             flags, filesize, filename):
         log.msg("GetPhotoStatus", macaddress, filename)
         m = hashlib.md5()
-        m.update(binascii.unhexlify(macaddress + self.key[macaddress] +
-            self.snonces[macaddress]))
+        m.update(binascii.unhexlify(macaddress + 
+            self.cards[macaddress]["uploadkey"] +
+            self.cards[macaddress]["snonce"]))
         want = m.hexdigest()
         assert credential == want, (credential, want)
         return {"fileid": 1, "offset": 0}
@@ -119,21 +117,23 @@ class EyeFiServer(soap.SOAPPublisher):
 
         m = hashlib.md5()
         m.update(checksum(form['FILENAME'][0]) +
-                binascii.unhexlify(self.key[macaddress]))
+                binascii.unhexlify(self.cards[macaddress]["uploadkey"]))
         got = m.hexdigest()
         want = form['INTEGRITYDIGEST'][0]
         if got == want:
             tar = StringIO.StringIO(form['FILENAME'][0])
             tarfi = tarfile.open(fileobj=tar)
-            output = self.output
-            if self.macfolder:
-                output = os.path.join(output, macaddress)
+            output = self.cards[macaddress]["folder"]
+            if self.cards[macaddress]["date_folder"]:
+                dat = datetime.datetime.fromtimestamp(xxx) # FIXME
+                dat = dat.strftime(self.cards[macaddress]["date_format"])
+                output = os.path.join(output, dat)
                 if not os.access(output, os.R_OK):
                     os.mkdir(output)
             tarfi.extractall(output)
             names = [os.path.join(output, name) for name
                     in tarfi.getnames()]
-            reactor.callLater(0, self.handle_upload, names)
+            reactor.callLater(0, self.handle_upload, macaddress, names)
             success = "true"
             log.msg("successful upload", macaddress, names)
         else:
@@ -143,13 +143,13 @@ class EyeFiServer(soap.SOAPPublisher):
                     {"success": success}})
         return resp
 
-    def handle_upload(self, names):
-        if self.geotag:
+    def handle_upload(self, macaddress, names):
+        if self.cards[macaddress]["geotag"]:
             photo, d = tag_photo(*names)
             d.addBoth(log.msg)
-        if self.run:
-            for r in self.run:
-                utils.getProcessOutput(r, names).addBoth(log.msg)
+        if self.cards[macaddress]["run"]:
+            utils.getProcessOutput(
+                    self.cards[macaddress]["run"], names).addBoth(log.msg)
 
     def soap_MarkLastPhotoInRoll(self, macaddress, mergedelta):
         log.msg("MarkLastPhotoInRoll", macaddress, mergedelta)
@@ -185,40 +185,3 @@ def eyefi_site(*a, **k):
     v1 = EyeFiServer(*a, **k)
     eyefilm.putChild("v1", v1)
     return server.Site(root)
-
-
-def main():
-    import optparse
-    parser = optparse.OptionParser()
-    parser.add_option("-p", "--port",
-            help="listen port [%default]")
-    parser.add_option("-k", "--key", action="append",
-            help="mac:key per card [%default]")
-    parser.add_option("-o", "--output",
-            help="output directory [%default]")
-    parser.add_option("-m", "--macfolder", action="store_true",
-            help="use subfolders per card mac [%default]")
-    parser.add_option("-g", "--geotag", action="store_true",
-            help="geotag in xmp sidecar [%default]")
-    parser.add_option("-r", "--run", action="append",
-            help="execute command with files as arguments [%default]")
-    parser.add_option("-v", "--verbose", action="store_true",
-            help="be verbose, log to stdout [%default]")
-
-    parser.set_defaults(
-            key=["0018564167f0:31208d34561045b53e60a70f16c0eb9c"],
-            port=59278, verbose=False, output="pictures", run=[],
-            geotag=False, macfolder=False)
-    opts, args = parser.parse_args()
-
-    if opts.verbose:
-        import sys
-        log.startLogging(sys.stdout)
-    
-    site = eyefi_site(dict(v.split(":") for v in opts.key),
-            opts.output, opts.macfolder, opts.run, opts.geotag)
-    reactor.listenTCP(opts.port, site)
-    reactor.run()
-
-if __name__ == '__main__':
-    main()

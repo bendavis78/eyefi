@@ -15,6 +15,27 @@ Requirements
 Installation
 ------------
 
+Get the card's MAC and upload key
+.................................
+
+At the moment, EyeFi cards still have to be activated using the
+Windows/OSC application bundled with the card. EyeFi Center or EyeFi
+Manager will write some configuration to the card and negotiate a unique
+upload key with the card and the api.eye.fi server. This procedure works
+also in a virtualbox with the usb card reader passed through to the
+guest OS. But it does not seem to work with the card's filesystem simply
+exposed to the guest. After the procedure, the mac and the key can be
+found in /Users/*/AppData/Roaming/Eye-Fi/Settings.xml (Windows 7).
+
+Configure wireless networks
+...........................
+
+eyefi-config is a nice open source tool to do that. Alternatively, the
+windows application can also be used here.
+
+
+
+
 * # python setup.py install
   or
   # python setup.py develop

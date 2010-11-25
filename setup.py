@@ -27,20 +27,22 @@ setup(
         "docutils>=0.3",
         "Twisted-Web", "Twisted-Core",
         "SOAPpy",
-        "pyexiv2>=0.2",
         "simplejson",
+        # "pyexiv2>=0.2",
+        # "flickrapi",
         # "Sphinx",
-        "configobj",
     ],
     dependency_links = [
         "http://tilloy.net/dev/pyexiv2/download.html",
     ],
     package_data = {
-        'eyefi': ['*.tac'],
+        'eyefi': ['base.conf'],
     },
+    scripts = [
+        "bin/eyefi_server.tac"
+    ],
     entry_points = {
         'console_scripts': [
-            'eyefi_server = eyefi.server:main',
             'google_loc = eyefi.google_loc:main',
             'eyefi_geotag = eyefi.maclog:main',
         ],

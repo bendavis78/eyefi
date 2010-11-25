@@ -18,13 +18,16 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from twisted.application import service, internet
+
+from pkg_resources import Requirement, resource_filename
+
+from eyefi.config import glue_config
 from eyefi.server import eyefi_site
 
-application = service.Application("EyeFi Server")
-site = eyefi_site(
-    key={"0018564167f0": "31208d34561045b53e60a70f16c0eb9c"},
-    output="pictures", macfolder=False, run=None, geotag=True)
-service = internet.TCPServer(59278, site)
+application = service.Application("eyefi")
+cfg, cards = glue_config()
+site = eyefi_site(cards)
+service = internet.TCPServer(cfg.get("__main__", "port"), site)
 service.setServiceParent(application)
 
 # vim: ai sts=4 sw=4 expandtab syntax=python
