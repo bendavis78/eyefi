@@ -24,7 +24,6 @@ import binascii
 import tarfile
 import random
 import cStringIO as StringIO
-import array
 import struct
 
 from xml.etree import ElementTree as ET
@@ -33,25 +32,21 @@ import SOAPpy
 
 from twisted.python import log
 from twisted.web import soap
-from twisted.internet import utils
-from twisted.internet import reactor
+from twisted.internet import utils, reactor
 
 from eyefilog import tag_photo
 
 
 
-def checksum(data, key):
+def checksum(data):
     data += "\0" * (-len(data) % 512)
-    s = array.array("H")
+    s = ""
     for i in range(0, len(data), 512):
         a = sum(struct.unpack("<256H", data[i:i + 512]))
         while a >> 16:
             a = (a >> 16) + (a & 0xffff)
-        s.append(a ^ 0xffff)
-    s.fromstring(binascii.unhexlify(key))
-    m = hashlib.md5()
-    m.update(s.tostring())
-    return m.hexdigest()
+        s += struct.pack("<H", a ^ 0xffff)
+    return s
 
 
 class EyeFiServer(soap.SOAPPublisher):
@@ -110,6 +105,7 @@ class EyeFiServer(soap.SOAPPublisher):
         typ, pdict = cgi.parse_header(
                 request.requestHeaders.getRawHeaders("content-type")[0])
         form = cgi.parse_multipart(request.content, pdict)
+
         p, header, body, attrs = SOAPpy.parseSOAPRPC(
             form['SOAPENVELOPE'][0], 1, 1, 1)
         req_params = p._asdict()
@@ -120,7 +116,11 @@ class EyeFiServer(soap.SOAPPublisher):
         filesize = req_params["filesize"]
         filesignature = req_params["filesignature"]
         fileid = req_params["fileid"]
-        got = checksum(form['FILENAME'][0], self.key[macaddress])
+
+        m = hashlib.md5()
+        m.update(checksum(form['FILENAME'][0]) +
+                binascii.unhexlify(self.key[macaddress]))
+        got = m.hexdigest()
         want = form['INTEGRITYDIGEST'][0]
         if got == want:
             tar = StringIO.StringIO(form['FILENAME'][0])
@@ -135,10 +135,10 @@ class EyeFiServer(soap.SOAPPublisher):
                     in tarfi.getnames()]
             reactor.callLater(0, self.handle_upload, names)
             success = "true"
-            log.msg("successful upload", names)
+            log.msg("successful upload", macaddress, names)
         else:
             success = "false"
-            log.msg("upload verification failed", got, want)
+            log.msg("upload verification failed", macaddress, got, want)
         resp = SOAPpy.buildSOAP(kw={"UploadPhotoResponse":
                     {"success": success}})
         return resp
