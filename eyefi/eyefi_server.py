@@ -1,9 +1,8 @@
 #!/usr/bin/python
 
-# EyeFi Python Server v3.0
+# EyeFi Python Server
 #
-# Copyright (C) 2009 Jeffrey Tchang
-#               2010 Robert Jordens
+# Copyright (C) 2010 Robert Jordens
 # 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -115,6 +114,12 @@ class EyeFiServer(soap.SOAPPublisher):
             form['SOAPENVELOPE'][0], 1, 1, 1)
         req_params = p._asdict()
         macaddress = req_params["macaddress"]
+        encryption = req_params["encryption"]
+        filename = req_params["filename"]
+        flags = req_params["flags"]
+        filesize = req_params["filesize"]
+        filesignature = req_params["filesignature"]
+        fileid = req_params["fileid"]
         got = checksum(form['FILENAME'][0], self.key[macaddress])
         want = form['INTEGRITYDIGEST'][0]
         if got == want:

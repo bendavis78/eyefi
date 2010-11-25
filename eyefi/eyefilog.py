@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# EyeFi Python Server v3.0
+# EyeFi Python Server
 #
 # Copyright (C) 2010 Robert Jordens
 # 
