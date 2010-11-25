@@ -21,11 +21,10 @@ import os
 import cgi
 import hashlib
 import binascii
+import struct
 import tarfile
 import random
 import cStringIO as StringIO
-import struct
-
 from xml.etree import ElementTree as ET
 
 import SOAPpy
@@ -53,7 +52,8 @@ class EyeFiServer(soap.SOAPPublisher):
     def __init__(self, cards):
         soap.SOAPPublisher.__init__(self)
         self.cards = cards
-        reactor.callLater(0, log.msg, "eyefi server configured", cards)
+        reactor.callLater(0, log.msg,
+            "eyefi server configured and running with", cards)
 
     def render(self, request):
         # the upload request is multipart/form-data with file and SOAP:
@@ -124,7 +124,7 @@ class EyeFiServer(soap.SOAPPublisher):
             tar = StringIO.StringIO(form['FILENAME'][0])
             tarfi = tarfile.open(fileobj=tar)
             output = self.cards[macaddress]["folder"]
-            if self.cards[macaddress]["date_folder"]:
+            if self.cards[macaddress]["date_folders"]:
                 dat = datetime.datetime.fromtimestamp(xxx) # FIXME
                 dat = dat.strftime(self.cards[macaddress]["date_format"])
                 output = os.path.join(output, dat)
@@ -155,22 +155,6 @@ class EyeFiServer(soap.SOAPPublisher):
         log.msg("MarkLastPhotoInRoll", macaddress, mergedelta)
         return {}
     soap_MarkLastPhotoInRoll.useKeywords = True
-
-    # other soap methods (probably center2server) seen in logs
-    # def soap_GetConnectedCards(self, **k): pass
-    # def soap_GetSummary(self, **k): pass
-    # def soap_GetScannedNetworks(self, **k): pass
-    # def soap_TestNetwork(self, **k): pass
-    # def soap_GetConfiguredNetworks(self, **k): pass
-    # def soap_GetWirlessNetworkKey(self, **k): pass
-    # def soap_PhotoSearch(self, **k): pass
-    # def soap_GetFolderConfig(self, **k): pass
-    # def soap_GetDesktopSync(self, **k): pass
-    # def soap_GetEndlessMemoryConfig(self, **k): pass
-    # def soap_GetUploadPolicy(self, **k): pass
-    # def soap_GetRegistrationParam(self, **k): pass
-    # def soap_UnmountCard(self, **k): pass
-    # def soap_UpdateFirmware(self, **k): pass
 
 
 def eyefi_site(*a, **k):

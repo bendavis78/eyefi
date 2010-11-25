@@ -20,12 +20,11 @@
 from configglue.pyschema import schemaconfigglue, ini2schema
 from pkg_resources import Requirement, resource_filename
 
+base = resource_filename(Requirement.parse("eyefi"), "conf/base.conf")
 
-def glue_config(confs=("/etc/eyefi.conf", "~/.eyefi.conf", "eyefi.conf"),
-        base=None):
-    if base == None:
-        base = resource_filename(
-                Requirement.parse("eyefi"), "base.conf")
+def glue_config(
+        confs=("/etc/eyefi.conf", "~/.eyefi.conf", "eyefi.conf"),
+        base=base):
     config_parser = ini2schema(open(base))
     # op, opts, args = schemaconfigglue(config_parser)
     config_parser.read(confs)
@@ -44,4 +43,4 @@ def glue_config(confs=("/etc/eyefi.conf", "~/.eyefi.conf", "eyefi.conf"),
     return config_parser, cards
 
 if __name__ == "__main__":
-    print glue_config("my.conf")
+    print glue_config("eyefi.conf")

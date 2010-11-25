@@ -24,11 +24,11 @@ setup(
     version = "0.1",
     packages = find_packages(),
     install_requires = [
-        "docutils>=0.3",
         "Twisted-Web", "Twisted-Core",
         "SOAPpy",
         "simplejson",
         # "pyexiv2>=0.2",
+        "configglue",
         # "flickrapi",
         # "Sphinx",
     ],
@@ -36,7 +36,7 @@ setup(
         "http://tilloy.net/dev/pyexiv2/download.html",
     ],
     package_data = {
-        'eyefi': ['base.conf'],
+        "eyefi": ["../conf/base.conf"],
     },
     scripts = [
         "bin/eyefi_server.tac"
