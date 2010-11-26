@@ -74,4 +74,18 @@ setup(
     license = "GPL",
     keywords = "eyefi twisted wifi photo cameras",
     url = "http://launchpad.net/eyefi",
+    classifiers = [f.strip() for f in """
+        Development Status :: 3 - Alpha
+        Environment :: No Input/Output (Daemon)
+        Framework :: Twisted
+        Intended Audience :: End Users/Desktop
+        License :: OSI Approved :: GNU General Public License (GPL)
+        Operating System :: OS Independent
+        Programming Language :: Python :: 2
+        Topic :: Internet :: WWW/HTTP :: WSGI :: Application
+        Topic :: Internet :: WWW/HTTP :: WSGI :: Server
+        Topic :: Multimedia :: Graphics :: Capture :: Digital Camera
+        Topic :: Multimedia :: Graphics :: Graphics Conversion
+        Topic :: Utilities
+    """.splitlines() if f.strip()],
 )
