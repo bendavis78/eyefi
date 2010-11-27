@@ -39,7 +39,7 @@ def glue_config(
         if not d["active"]:
             continue
         cards[d["macaddress"]] = d
-        del d["active"], d["macaddress"]
+        # del d["active"], d["macaddress"]
     return config_parser, cards
 
 if __name__ == "__main__":

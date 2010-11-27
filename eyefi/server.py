@@ -24,6 +24,7 @@ import binascii
 import struct
 import tarfile
 import random
+import datetime
 import cStringIO as StringIO
 from xml.etree import ElementTree as ET
 
@@ -31,10 +32,8 @@ import SOAPpy
 
 from twisted.python import log
 from twisted.web import soap
-from twisted.internet import utils, reactor
-
-from eyefi.maclog import tag_photo
-
+from twisted.internet import reactor
+from twisted.internet.defer import succeed
 
 
 def checksum(data):
@@ -49,9 +48,10 @@ def checksum(data):
 
 
 class EyeFiServer(soap.SOAPPublisher):
-    def __init__(self, cards):
+    def __init__(self, cards, actions):
         soap.SOAPPublisher.__init__(self)
         self.cards = cards
+        self.actions = actions
         reactor.callLater(0, log.msg,
             "eyefi server configured and running with", cards)
 
@@ -133,7 +133,8 @@ class EyeFiServer(soap.SOAPPublisher):
             tarfi.extractall(output)
             names = [os.path.join(output, name) for name
                     in tarfi.getnames()]
-            reactor.callLater(0, self.handle_upload, macaddress, names)
+            reactor.callLater(0, self.handle_upload,
+                    macaddress, names)
             success = "true"
             log.msg("successful upload", macaddress, names)
         else:
@@ -144,12 +145,10 @@ class EyeFiServer(soap.SOAPPublisher):
         return resp
 
     def handle_upload(self, macaddress, names):
-        if self.cards[macaddress]["geotag"]:
-            photo, d = tag_photo(*names)
-            d.addBoth(log.msg)
-        if self.cards[macaddress]["run"]:
-            utils.getProcessOutput(
-                    self.cards[macaddress]["run"], names).addBoth(log.msg)
+        d = succeed((self.cards[macaddress], names))
+        for actions in self.actions[macaddress]:
+            d.addCallback(action)
+        d.addBoth(log.msg, "actions completed")
 
     def soap_MarkLastPhotoInRoll(self, macaddress, mergedelta):
         log.msg("MarkLastPhotoInRoll", macaddress, mergedelta)
@@ -157,7 +156,7 @@ class EyeFiServer(soap.SOAPPublisher):
     soap_MarkLastPhotoInRoll.useKeywords = True
 
 
-def eyefi_site(*a, **k):
+def build_site(cfg, cards, actions):
     from twisted.web import server, resource
     root = resource.Resource()
     api = resource.Resource()
@@ -166,6 +165,7 @@ def eyefi_site(*a, **k):
     api.putChild("soap", soap)
     eyefilm = resource.Resource()
     soap.putChild("eyefilm", eyefilm)
-    v1 = EyeFiServer(*a, **k)
+    v1 = EyeFiServer(cards, actions)
     eyefilm.putChild("v1", v1)
-    return server.Site(root)
+    site = server.Site(root)
+    return site

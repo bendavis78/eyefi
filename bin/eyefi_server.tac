@@ -20,11 +20,13 @@
 from twisted.application import internet, service
 
 from eyefi.config import glue_config
-from eyefi.server import eyefi_site
+from eyefi.server import build_site
+from eyefi.actions import build_actions
 
 application = service.Application("eyefi")
 cfg, cards = glue_config()
-site = eyefi_site(cards)
+actions = build_actions(cfg, cards)
+site = build_site(cfg, cards, actions)
 server = internet.TCPServer(cfg.get("__main__", "port"), site)
 server.setServiceParent(application)
 
