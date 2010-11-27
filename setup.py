@@ -27,9 +27,9 @@ setup(
         "Twisted-Web", "Twisted-Core",
         "SOAPpy",
         "simplejson",
-        # "pyexiv2>=0.2",
+        # "pyexiv2>=0.2", # ignores ubuntu installation
         "configglue",
-        # "flickrapi",
+        "flickrapi",
         # "Sphinx",
     ],
     dependency_links = [
@@ -49,7 +49,7 @@ setup(
     },
     author = "Robert Jordens",
     author_email = "jordens@phys.ethz.ch",
-    description = "Eye-Fi SDHC+WiFi card tools",
+    description = "EyeFi Server Framework",
     long_description = """
         The EyeFi cards include both some 2-8GB of SDHC storage and an
         embedded microprocessor with WiFi (802.11bgn) that can upload

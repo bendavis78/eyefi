@@ -34,11 +34,11 @@ __x.set("x:xmptk", "XMP Core 4.4.0-Exiv2")
 __sidecar_template = ET.ElementTree(__x)
 
 
-def xmp_sidecar(filename, sidecar=None):
+def xmp_sidecar(filename, copy=True, sidecar=None):
     """
     returns an xmp sidecar for 'filename', either called 'sidecar' or 
-    filename.xmp. copies known exif and iptc tags there, but not xmp
-    (does not overwrite existing xmp sidecar data).
+    filename.xmp. if 'copy', copies known exif and iptc tags there,
+    but not xmp (does not overwrite existing xmp sidecar data).
     
     returns the sidecar dirty (needs to be written)
     """
@@ -50,7 +50,8 @@ def xmp_sidecar(filename, sidecar=None):
     i.read()
     j = pyexiv2.metadata.ImageMetadata(sidecar)
     j.read()
-    i.copy(j, exif=True, iptc=True, xmp=False, comment=False)
+    if copy:
+        i.copy(j, exif=True, iptc=True, xmp=False, comment=False)
     # j.write()
     return j
 
@@ -62,12 +63,14 @@ def write_gps(filename, lat, lon, alt=None, datum="WGS-84",
     else:
         i = pyexiv2.metadata.ImageMetadata(filename)
         i.read()
+
     i["Xmp.exif.GPSVersionID"] = "2 0 0 0"
+
     i["Xmp.exif.GPSMapDatum"] = datum
+
     if alt is None:
         i["Xmp.exif.GPSAltitudeRef"] = 0
         i["Xmp.exif.GPSMeasureMode"] = "2"
-
     else:
         i["Xmp.exif.GPSAltitudeRef"] = 1
         i["Xmp.exif.GPSAltitude"] = pyexiv2.Rational(int(alt*100), 100)

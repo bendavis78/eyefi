@@ -69,12 +69,14 @@ def photo_macs(photo, aps):
                          "signal_to_noise": seen[1]})
     return macs
 
+
 def write_loc(loc, photo):
     loc = loc["location"]
     write_gps(photo,
         loc["latitude"], loc["longitude"], loc.get("altitude",
             None), "WGS-84", loc.get("accuracy", None))
     return loc, photo
+
 
 def tag_photo(photoname, log):
     dir, name = os.path.split(photoname)
@@ -85,6 +87,7 @@ def tag_photo(photoname, log):
             loc = google_loc(wifi_towers=macs)
             loc.addCallback(write_loc, photoname)
             return photos[name], loc
+
 
 def main():
     import sys
