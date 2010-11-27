@@ -25,12 +25,11 @@ from pkg_resources import Requirement, resource_filename
 
 base = resource_filename(Requirement.parse("eyefi"), "conf/base.conf")
 
+confs = ("/etc/eyefi.conf",
+         os.path.join(os.environ.get("HOME", "."), ".eyefi.conf"),
+         "eyefi.conf")
 
-def glue_config(
-        confs=("/etc/eyefi.conf",
-            os.path.join(os.environ.get("HOME", "."), ".eyefi.conf"),
-            "eyefi.conf"),
-        base=base):
+def glue_config(confs=confs, base=base):
     config_parser = ini2schema(open(base))
     # op, opts, args = schemaconfigglue(config_parser)
     config_parser.read(confs)
@@ -70,15 +69,11 @@ def twisted_schemaconfigglue(parser, argv=None):
     params = []
     for section in schema.sections():
         for option in section.options():
-            kwargs = {}
-            if option.help:
-                kwargs['help'] = option.help
-            kwargs['default'] = parser.get(section.name, option.name)
-            kwargs['action'] = option.action
+            # TODO: option.action
             params.append([long_name(option), None, 
                 parser.get(section.name, option.name), option.help])
 
-    class op(usage.Options):
+    class Options(usage.Options):
         optParameters = params
         def postOptions(self):
             for section in schema.sections():
@@ -88,4 +83,4 @@ def twisted_schemaconfigglue(parser, argv=None):
                         # the value has been overridden by an argument;
                         # update it.
                         parser.set(section.name, option.name, value)
-    return op
+    return Options
