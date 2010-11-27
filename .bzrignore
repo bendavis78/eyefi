@@ -5,3 +5,4 @@
 ./dist
 ./eyefi.egg-info
 ./eyefi.conf
+./twisted/plugins/dropin.cache

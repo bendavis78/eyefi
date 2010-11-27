@@ -17,17 +17,26 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
+
 from configglue.pyschema import schemaconfigglue, ini2schema
+from twisted.python import usage
 from pkg_resources import Requirement, resource_filename
 
 base = resource_filename(Requirement.parse("eyefi"), "conf/base.conf")
 
+
 def glue_config(
-        confs=("/etc/eyefi.conf", "~/.eyefi.conf", "eyefi.conf"),
+        confs=("/etc/eyefi.conf",
+            os.path.join(os.environ.get("HOME", "."), ".eyefi.conf"),
+            "eyefi.conf"),
         base=base):
     config_parser = ini2schema(open(base))
     # op, opts, args = schemaconfigglue(config_parser)
     config_parser.read(confs)
+    return config_parser
+
+def get_cards(config_parser):
     cards = {}
     for sec in config_parser.sections():
         if sec == "__main__":
@@ -40,7 +49,43 @@ def glue_config(
             continue
         cards[d["macaddress"]] = d
         # del d["active"], d["macaddress"]
-    return config_parser, cards
+    return cards
 
-if __name__ == "__main__":
-    print glue_config("eyefi.conf")
+
+def twisted_schemaconfigglue(parser, argv=None):
+    """Populate an usage.Options subclass with options and defaults
+    taken from a fully loaded SchemaConfigParser.
+    """
+
+    def long_name(option):
+        if option.section.name == '__main__':
+            return option.name
+        return option.section.name + '_' + option.name
+
+    def opt_name(option):
+        return long_name(option).replace('-', '_')
+
+    schema = parser.schema
+
+    params = []
+    for section in schema.sections():
+        for option in section.options():
+            kwargs = {}
+            if option.help:
+                kwargs['help'] = option.help
+            kwargs['default'] = parser.get(section.name, option.name)
+            kwargs['action'] = option.action
+            params.append([long_name(option), None, 
+                parser.get(section.name, option.name), option.help])
+
+    class op(usage.Options):
+        optParameters = params
+        def postOptions(self):
+            for section in schema.sections():
+                for option in section.options():
+                    value = self[opt_name(option)]
+                    if parser.get(section.name, option.name) != value:
+                        # the value has been overridden by an argument;
+                        # update it.
+                        parser.set(section.name, option.name, value)
+    return op

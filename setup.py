@@ -38,9 +38,7 @@ setup(
     package_data = {
         "eyefi": ["../conf/base.conf"],
     },
-    scripts = [
-        "bin/eyefi_server.tac"
-    ],
+    # scripts = [],
     entry_points = {
         'console_scripts': [
             'google_loc = eyefi.google_loc:main',

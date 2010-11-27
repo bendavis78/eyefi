@@ -47,12 +47,27 @@ Configure the server
 
 write a configuration file. Copy conf/example.conf to /etc/eyefi.conf or
 ~/.eyefi.conf or ./eyefi.conf and edit it. The files are read in this
-order (prepending conf/base.conf) and override/amend each other.
-Insert the mac and the key you have obtained before in one of these
-files.
+order and override/amend each other.  Insert the mac and the key you
+have obtained before in one of these files.  A single card named "card"
+can also be configured via the commandline.
+
+Get info about generic twisted options:
+
+  $ twistd -h
+
+Get info about the eyefi options:
+
+  $ twistd eyefi -h
 
 
 Run the server
 --------------
 
- $ eyefi_server.tac
+If you want to use the flickr upload, you have to run the server in the
+foreground once to get the flickr token:
+
+  $ twistd -n eyefi
+ 
+After that it works also in the background:
+
+  $ twistd eyefi
