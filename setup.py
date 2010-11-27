@@ -30,13 +30,13 @@ setup(
         # "pyexiv2>=0.2", # ignores ubuntu installation
         "configglue",
         "flickrapi",
-        # "Sphinx",
+        "Sphinx",
     ],
     dependency_links = [
         "http://tilloy.net/dev/pyexiv2/download.html",
     ],
     package_data = {
-        "eyefi": ["../conf/base.conf"],
+        "eyefi": ["../conf/*.conf"],
     },
     # scripts = [],
     entry_points = {

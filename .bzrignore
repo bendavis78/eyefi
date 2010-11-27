@@ -1,8 +1,7 @@
 *.pyo
 *.pyc
-./pictures
 ./build
 ./dist
-./eyefi.egg-info
-./eyefi.conf
+./*.egg-info
 ./twisted/plugins/dropin.cache
+./doc/_*
