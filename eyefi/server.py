@@ -146,7 +146,7 @@ class EyeFiServer(soap.SOAPPublisher):
 
     def handle_upload(self, macaddress, names):
         d = succeed((self.cards[macaddress], names))
-        for actions in self.actions[macaddress]:
+        for action in self.actions[macaddress]:
             d.addCallback(action)
         d.addBoth(log.msg, "actions completed")
 

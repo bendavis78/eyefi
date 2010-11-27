@@ -71,12 +71,17 @@ class ExtractPreview(Action):
 
     def handle_photo(self, card, files):
         for file in files:
-            base, ext = os.path.splitext(file)[1]
+            base, ext = os.path.splitext(file)
             if ext.lower() in (".nef",):
                 i = pyexiv2.metadata.ImageMetadata(file)
                 i.read()
-                i.previews[-1].write_to_file(base)
-                log.msg("wrote preview", base, i.previews[-1].extension)
+                p = i.previews[-1]
+                p.write_to_file(str(base))
+                j = pyexiv2.metadata.ImageMetadata(str(base)+p.extension)
+                j.read()
+                i.copy(j, exif=True, iptc=True, xmp=True, comment=True)
+                j.write()
+                log.msg("wrote preview", base, p.extension)
         return card, files
 
 
