@@ -81,6 +81,7 @@ class ExtractPreview(Action):
                 j.read()
                 i.copy(j, exif=True, iptc=True, xmp=True, comment=True)
                 j.write()
+                files.append(str(base)+p.extension)
                 log.msg("wrote preview", base, p.extension)
         return card, files
 

@@ -10,6 +10,7 @@ Requirements
 * pyexiv > 0.2 for tagging images. http://tilloy.net/dev/pyexiv2/.
   Ubuntu packages are available at
   https://launchpad.net/~pyexiv2-developers/+archive/ppa
+* flickrapi for th flickr upload
 
 
 Installation
@@ -17,9 +18,9 @@ Installation
 
 You can run the server either from the tarball or install it as root:
 
-  # python ./setup.py install
+  # python setup.py install
   or
-  # python ./setup.py develop
+  # python setup.py develop
 
 
 Get the card's MAC and upload key
@@ -45,19 +46,12 @@ windows application can also be used here.
 Configure the server
 --------------------
 
-write a configuration file. Copy conf/example.conf to /etc/eyefi.conf or
+Write a configuration file. Copy conf/example.conf to /etc/eyefi.conf or
 ~/.eyefi.conf or ./eyefi.conf and edit it. The files are read in this
 order and override/amend each other.  Insert the mac and the key you
-have obtained before in one of these files.  A single card named "card"
+have obtained above in one of these files.  The configuration files can
+include an arbitrary number of card sections. A single card named "card"
 can also be configured via the commandline.
-
-Get info about generic twisted options:
-
-  $ twistd -h
-
-Get info about the eyefi options:
-
-  $ twistd eyefi -h
 
 
 Run the server
@@ -71,3 +65,14 @@ foreground once to get the flickr token:
 After that it works also in the background:
 
   $ twistd eyefi
+
+Get info about generic twisted options:
+
+  $ twistd -h
+
+Get info about the eyefi options:
+
+  $ twistd eyefi -h
+
+
+
