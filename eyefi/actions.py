@@ -127,18 +127,6 @@ class Geotag(Action):
 
 
 @register_action
-class Run(Action):
-    name = "run"
-
-    def handle_photo(self, card, files):
-        d = utils.getProcessOutput(
-            card["run"], names)
-        d.addCallback(log.msg)
-        d.addCallback(lambda _: (card, files))
-        return d
-
-
-@register_action
 class Geeqie(Action):
     name = "geeqie"
 
@@ -150,7 +138,6 @@ class Geeqie(Action):
     def handle_photo(self, card, files):
         d = utils.getProcessValue("/usr/bin/geeqie",
                 ["--remote", str(files[0])], os.environ)
-        d.addErrback(log.msg)
         d.addBoth(lambda _: (card, files)) # succeeds
         return d
 
@@ -173,5 +160,16 @@ class Flickr(Action):
                 is_public=card["flickr_public"] and "1" or "0"
                     ).addCallback(log.msg, "upload to flickr"))
         d = DeferredList(ds, fireOnOneErrback=1)
+        d.addCallback(lambda _: (card, files))
+        return d
+
+
+@register_action
+class Run(Action):
+    name = "run"
+
+    def handle_photo(self, card, files):
+        d = utils.getProcessOutput(card["run"], files, os.environ)
+        d.addCallback(log.msg)
         d.addCallback(lambda _: (card, files))
         return d
