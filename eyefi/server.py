@@ -53,7 +53,7 @@ class EyeFiServer(soap.SOAPPublisher):
         self.cards = cards
         self.actions = actions
         reactor.callLater(0, log.msg,
-            "eyefi server configured and running with", cards)
+            "eyefi server configured and running with", cards, actions)
 
     def render(self, request):
         # the upload request is multipart/form-data with file and SOAP:
@@ -123,9 +123,10 @@ class EyeFiServer(soap.SOAPPublisher):
         if got == want:
             tar = StringIO.StringIO(form['FILENAME'][0])
             tarfi = tarfile.open(fileobj=tar)
-            output = self.cards[macaddress]["folder"]
+            output = os.path.expanduser(self.cards[macaddress]["folder"])
             if self.cards[macaddress]["date_folders"]:
-                dat = datetime.datetime.fromtimestamp(xxx) # FIXME
+                # dat = datetime.datetime.fromtimestamp(xxx) # FIXME
+                dat = datetime.datetime.now()
                 dat = dat.strftime(self.cards[macaddress]["date_format"])
                 output = os.path.join(output, dat)
                 if not os.access(output, os.R_OK):
@@ -148,7 +149,8 @@ class EyeFiServer(soap.SOAPPublisher):
         d = succeed((self.cards[macaddress], names))
         for action in self.actions[macaddress]:
             d.addCallback(action)
-        d.addBoth(log.msg, "actions completed")
+        d.addCallback(lambda _: log.msg("actions completed on", names))
+        d.addErrback(log.msg, "actions failed on", names)
 
     def soap_MarkLastPhotoInRoll(self, macaddress, mergedelta):
         log.msg("MarkLastPhotoInRoll", macaddress, mergedelta)

@@ -26,7 +26,7 @@ from pkg_resources import Requirement, resource_filename
 base = resource_filename(Requirement.parse("eyefi"), "conf/base.conf")
 
 confs = ("/etc/eyefi.conf",
-         os.path.join(os.environ.get("HOME", "."), ".eyefi.conf"),
+         os.path.expanduser("~/.eyefi.conf"),
          "eyefi.conf")
 
 def glue_config(confs=confs, base=base):
@@ -53,7 +53,8 @@ def get_cards(config_parser):
 
 def twisted_schemaconfigglue(parser, argv=None):
     """Populate an usage.Options subclass with options and defaults
-    taken from a fully loaded SchemaConfigParser.
+    taken from a fully loaded SchemaConfigParser. After the Options
+    instance has parse the options, the SchemaConfigParser is updated.
     """
 
     def long_name(option):

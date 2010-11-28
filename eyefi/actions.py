@@ -124,8 +124,9 @@ class FlickrUpload(Action):
         ds = []
         for file in files:
             if os.path.splitext(file)[1].lower() in (".jpg",):
-                ds.append(self.flickr.upload(file, is_public="0"
+                ds.append(self.flickr.upload(str(file),
+                is_public=card["flickr_public"] and "1" or "0"
                     ).addCallback(log.msg, "upload to flickr"))
-        d = DeferredList(ds)
+        d = DeferredList(ds, fireOnOneErrback=1, consumeErrors=1)
         d.addCallback(lambda _: (card, files))
         return d
