@@ -56,7 +56,7 @@ class Action(object):
 
 
 _actions = []
-def _register_action(action):
+def register_action(action):
     _actions.append(action)
     return action
 
@@ -72,12 +72,12 @@ def build_actions(cfg, cards):
     return actions
 
 
-@_register_action
+@register_action
 class ExtractPreview(Action):
     name = "extract_preview"
 
     def handle_photo(self, card, files):
-        for file in files:
+        for file in files[:]:
             base, ext = os.path.splitext(file)
             if ext.lower() in (".nef",):
                 i = pyexiv2.metadata.ImageMetadata(file)
@@ -88,44 +88,45 @@ class ExtractPreview(Action):
                 j.read()
                 i.copy(j, exif=True, iptc=True, xmp=True, comment=True)
                 j.write()
-                files.append(str(base)+p.extension)
+                files.append(str(base) + p.extension) # beginning
                 log.msg("wrote preview", base, p.extension)
         return card, files
 
 
-@_register_action
+@register_action
 class Geotag(Action):
     name = "geotag"
 
     def handle_photo(self, card, files):
-        log = [f for f in files if f.lower().endswith(".log")][0]
+        logname = [f for f in files if f.lower().endswith(".log")][0]
         photoname = [f for f in files if f is not log][0]
         dir, name = os.path.split(photoname)
-        data = list(eyefi_parse(log))
+        data = list(eyefi_parse(logname))
         for photos, aps in data[::-1]: # take newest first
             if name in photos:
                 macs = photo_macs(photos[name], aps)
                 loc = google_loc(wifi_towers=macs)
-                loc.addCallback(self.write_loc, photoname,
-                        sidecar=card["geotag_sidecar"])
+                loc.addCallback(self._write_loc, photoname,
+                        sidecar=card["geotag_sidecar"],
+                        xmp=card["geotag_xmp"])
                 loc.addCallback(log.msg, "geotagged")
                 if card["geotag_delete_log"]:
-                    loc.addCallback(lambda _: os.remove(log))
+                    loc.addCallback(lambda _: os.remove(logname))
+                    files.remove(logname)
                 loc.addCallback(lambda _: (card, files))
                 return loc
         return card, files # no log
 
     @staticmethod
-    def _write_loc(loc, photo, sidecar=True):
+    def _write_loc(loc, photo, sidecar=True, xmp=False):
         loc = loc["location"]
         write_gps(photo,
-            loc["latitude"], loc["longitude"], loc.get("altitude",
-                None), "WGS-84", loc.get("accuracy", None), sidecar)
+            loc["latitude"], loc["longitude"], loc.get("altitude", None),
+            "WGS-84", loc.get("accuracy", None), sidecar, xmp)
         return loc, photo
 
 
-
-@_register_action
+@register_action
 class Run(Action):
     name = "run"
 
@@ -137,22 +138,24 @@ class Run(Action):
         return d
 
 
-@_register_action
+@register_action
 class Geeqie(Action):
     name = "geeqie"
 
     def __init__(self, cfg, card):
-        self.geeqie = utils.getProcessOutput("geeqie", ["--fullscreen"])
-        self.geeqie.addCallback(log.msg, "geeqie terminated")
+        self.geeqie = utils.getProcessOutput("/usr/bin/geeqie",
+                ["--fullscreen"], os.environ)
+        self.geeqie.addErrback(log.msg, "geeqie terminated")
  
     def handle_photo(self, card, files):
-        d = utils.getProcessOutput(
-                "geeqie", ["--remote", files[0]])
+        d = utils.getProcessValue("/usr/bin/geeqie",
+                ["--remote", str(files[0])], os.environ)
+        d.addErrback(log.msg)
         d.addBoth(lambda _: (card, files)) # succeeds
         return d
 
 
-@_register_action
+@register_action
 class Flickr(Action):
     name = "flickr"
 
@@ -160,7 +163,7 @@ class Flickr(Action):
         key, secret = cfg.get("__main__", "flickr_key").split(":")
         self.flickr = TwistedFlickrAPI(key, secret)
         self.flickr.authenticate_console("write"
-            ).addCallback(log.msg, "<- got flickr token")
+            ).addCallback(log.msg, "got flickr token")
         
     def handle_photo(self, card, files):
         ds = []

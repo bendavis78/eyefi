@@ -58,12 +58,11 @@ class EyeFiServer(soap.SOAPPublisher):
     def render(self, request):
         # the upload request is multipart/form-data with file and SOAP:
         # handle separately
-        headers = request.requestHeaders
-        content_type = headers.getRawHeaders("content-type")[0]
-        typ, pdict = cgi.parse_header(content_type)
-
         if request.postpath == ["upload"]:
-        #if typ == "multipart/x-url-encoded"
+            headers = request.requestHeaders
+            content_type = headers.getRawHeaders("content-type")[0]
+            typ, pdict = cgi.parse_header(content_type)
+            #if typ == "multipart/x-url-encoded"
             form = cgi.parse_multipart(request.content, pdict)
             data = form['SOAPENVELOPE'][0]
         else:
@@ -96,8 +95,8 @@ class EyeFiServer(soap.SOAPPublisher):
             else:
                 d = defer.maybeDeferred(function, *args)
 
-        d.addCallback(self._gotResult, request, meth)
-        d.addErrback(self._gotError, request, meth)
+        d.addCallback(self._gotResult, request, methodName)
+        d.addErrback(self._gotError, request, methodName)
         return server.NOT_DONE_YET
 
     def _gotResult(self, result, request, methodName):
@@ -153,7 +152,7 @@ class EyeFiServer(soap.SOAPPublisher):
 
         want = form['INTEGRITYDIGEST'][0]
 
-        if got is not want:
+        if not got == want:
             log.msg("upload verification failed", macaddress, got, want)
             return {"success": "false"}
         else:

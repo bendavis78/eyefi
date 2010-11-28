@@ -22,7 +22,9 @@ from setuptools import setup, find_packages
 setup(
     name = "eyefi",
     version = "0.1",
-    packages = find_packages(),
+    packages = find_packages(
+        exclude=["*.tests", "*.tests.*", "tests.*", "tests"],
+    ),
     install_requires = [
         "Twisted-Web", "Twisted-Core",
         "SOAPpy",

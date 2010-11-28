@@ -34,74 +34,89 @@ __x.set("x:xmptk", "XMP Core 4.4.0-Exiv2")
 __sidecar_template = ET.ElementTree(__x)
 
 
-def xmp_sidecar(filename, copy=True, sidecar=None):
+def get_sidecar(filename, copy=True, name=None):
     """
-    returns an xmp sidecar for 'filename', either called 'sidecar' or 
+    returns an xmp sidecar for 'filename', either called 'name' or 
     filename.xmp. if 'copy', copies known exif and iptc tags there,
     but not xmp (does not overwrite existing xmp sidecar data).
     
     returns the sidecar dirty (needs to be written)
     """
-    if sidecar is None:
-        sidecar = filename+".xmp"
-    if not os.access(sidecar, os.R_OK):
-        __sidecar_template.write(sidecar)
+    if name is None:
+        name = filename+".xmp"
+    if not os.access(name, os.R_OK):
+        __sidecar_template.write(name)
     i = pyexiv2.metadata.ImageMetadata(filename)
     i.read()
-    j = pyexiv2.metadata.ImageMetadata(sidecar)
+    j = pyexiv2.metadata.ImageMetadata(name)
     j.read()
     if copy:
-        i.copy(j, exif=True, iptc=True, xmp=False, comment=False)
+        i.copy(j, exif=True, iptc=True, xmp=True, comment=False)
     # j.write()
     return j
 
 
 def write_gps(filename, lat, lon, alt=None, datum="WGS-84",
-        dop=None, sidecar=True):
+        dop=None, sidecar=True, xmp=False):
     if sidecar:
-        i = xmp_sidecar(filename)
+        i = get_sidecar(filename)
     else:
         i = pyexiv2.metadata.ImageMetadata(filename)
         i.read()
 
-    i["Xmp.exif.GPSVersionID"] = "2 0 0 0"
+    if xmp:
+        prefix = "Xmp.exif."
+    else:
+        prefix = "Exif.GPSInfo."
 
-    i["Xmp.exif.GPSMapDatum"] = datum
+    i[prefix + "GPSVersionID"] = "2 0 0 0"
+
+    i[prefix + "GPSMapDatum"] = datum
 
     if alt is None:
-        i["Xmp.exif.GPSAltitudeRef"] = 0
-        i["Xmp.exif.GPSMeasureMode"] = "2"
+        #i[prefix + "GPSAltitudeRef"] = 0
+        i[prefix + "GPSMeasureMode"] = "2"
     else:
-        i["Xmp.exif.GPSAltitudeRef"] = 1
-        i["Xmp.exif.GPSAltitude"] = pyexiv2.Rational(int(alt*100), 100)
-        i["Xmp.exif.GPSMeasureMode"] = "3"
+        #i[prefix + "GPSAltitudeRef"] = 1
+        i[prefix + "GPSAltitude"] = pyexiv2.Rational(int(alt*100), 100)
+        i[prefix + "GPSMeasureMode"] = "3"
 
     if dop is not None:
-        i["Xmp.exif.GPSDOP"] = pyexiv2.Rational(int(dop*10), 10)
+        i[prefix + "GPSDOP"] = pyexiv2.Rational(int(dop*10), 10)
 
-    if lat < 0:
-        r = "S";
-        lat *= -1
+    if xmp:
+        b, a = math.modf(lat)
+        c, b = math.modf(b*60)
+        c = int(c*60)
+        i[prefix + "GPSLatitude"] = pyexiv2.utils.GPSCoordinate(a, b, c, r)
     else:
-        r = "N";
-    b, a = math.modf(lat)
-    c, b = math.modf(b*60)
-    c = int(c*60)
-    i["Xmp.exif.GPSLatitude"] = pyexiv2.utils.GPSCoordinate(a, b, c, r)
- 
-    if lon < 0:
-        r = "W";
-        lon *= -1
+        if lat < 0:
+            r = "S";
+            lat *= -1
+        else:
+            r = "N";
+        i[prefix + "GPSLatitudeRef"] = r
+        i[prefix + "GPSLatitude"] = pyexiv2.utils.Rational(int(lat*1e6),
+                int(1e6))
+
+    if xmp:
+        b, a = math.modf(lon)
+        c, b = math.modf(b*60)
+        c = int(c*60)
+        i[prefix + "GPSLongitude"] = pyexiv2.utils.GPSCoordinate(a, b, c, r)
     else:
-        r = "E";
-    b, a = math.modf(lon)
-    c, b = math.modf(b*60)
-    c = int(c*60)
-    i["Xmp.exif.GPSLongitude"] = pyexiv2.utils.GPSCoordinate(a, b, c, r)
-    
+        if lon < 0:
+            r = "W";
+            lon *= -1
+        else:
+            r = "E";
+        i[prefix + "GPSLongitudeRef"] = r
+        i[prefix + "GPSLongitude"] = pyexiv2.utils.Rational(int(lon*1e6),
+                int(1e6))
+
     i.write()
 
 
 if __name__ == "__main__":
-    write_gps("pictures/DSC_9766.NEF",
-            47.999999, 8.111111, None, "WGS-84", 150.)
+    write_gps("/home/rj/tt.jpg",
+            47.999999, 8.111111, None, "WGS-84", 150., sidecar=False)
