@@ -1,7 +1,11 @@
-*.pyo
-*.pyc
 ./build
 ./dist
 ./*.egg-info
-./twisted/plugins/dropin.cache
+*.cache
 ./doc/_*
+./debian/python-eyefi/
+./debian/*.debhelper
+./debian/*.log
+./debian/*.substvars
+./debian/*-stampdir
+./debian/files

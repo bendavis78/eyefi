@@ -1,0 +1,36 @@
+Source: python-eyefi
+Section: python
+Priority: optional
+Maintainer: Robert Jordens <jordens@debian.org>
+Build-Depends: cdbs,
+ python-central (>= 0.6.0),
+ python,
+ python-setuptools,
+ debhelper (>= 5)
+XS-Python-Version: >=2.5
+Standards-Version: 3.9.1.0
+
+Package: python-eyefi
+Architecture: all
+XB-Python-Version: ${python:Versions}
+Depends: ${misc:Depends}, ${python:Depends}
+Description: EyeFi SDHC+WiFi card server framework
+ The EyeFi cards include both some 2-8GB of SDHC storage and an
+ embedded microprocessor with WiFi (802.11bgn) that can upload
+ images as soon as they have been captured. While the software
+ bundled with the cards is closed and Win/OSX only, the protocol
+ is decently clean SOAP (like XML RPC via HTTP) and can be
+ implemented with twisted and soappy.
+ . 
+ After associating with one of the configured wireless networks,
+ the card authenticates a session with the server. The shared
+ secret needs to be obtained from the settings of the Win/OSX
+ application. The server can cope with multiple cards that are
+ identified by their MAC address. After authentication, the card
+ pushes the images that have not yet been posted to the server.
+ The server unpacks the tarred bundle (optionally in a directory
+ per MAC address). It then resolves the wireless networks that were
+ logged by the card at the time the picture was taken into a
+ geolocation using the Google API. The geolocation data is stored
+ in an XMP sidecar. Finally, you can trigger your own scripts
+ on complete upload, extraction and tagging.
