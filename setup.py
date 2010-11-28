@@ -42,9 +42,9 @@ setup(
     entry_points = {
         'console_scripts': [
             'google_loc = eyefi.google_loc:main',
-            'eyefi_geotag = eyefi.maclog:main',
         ],
     },
+    test_suite = "tests",
     author = "Robert Jordens",
     author_email = "jordens@phys.ethz.ch",
     description = "EyeFi Server Framework",

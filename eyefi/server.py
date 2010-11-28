@@ -31,9 +31,8 @@ from xml.etree import ElementTree as ET
 import SOAPpy
 
 from twisted.python import log
-from twisted.web import soap
-from twisted.internet import reactor
-from twisted.internet.defer import succeed
+from twisted.web import soap, server
+from twisted.internet import reactor, defer
 
 
 def checksum(data):
@@ -53,100 +52,140 @@ class EyeFiServer(soap.SOAPPublisher):
         self.cards = cards
         self.actions = actions
         reactor.callLater(0, log.msg,
-            "eyefi server configured and running with", cards, actions)
+            "eyefi server configured and running with cards", cards,
+            "and actions", actions)
 
     def render(self, request):
         # the upload request is multipart/form-data with file and SOAP:
         # handle separately
+        headers = request.requestHeaders
+        content_type = headers.getRawHeaders("content-type")[0]
+        typ, pdict = cgi.parse_header(content_type)
+
         if request.postpath == ["upload"]:
-            return self.render_upload(request)
+        #if typ == "multipart/x-url-encoded"
+            form = cgi.parse_multipart(request.content, pdict)
+            data = form['SOAPENVELOPE'][0]
         else:
-            return soap.SOAPPublisher.render(self, request)
+            form = None
+            data = request.content.read()
+
+        p, header, body, attrs = SOAPpy.parseSOAPRPC(data, 1, 1, 1)
+        methodName, args, kwargs, ns = p._name, p._aslist, p._asdict, p._ns
+
+        if callable(args):
+            args = args()
+        if callable(kwargs):
+            kwargs = kwargs()
+
+        if form:
+            kwargs["form"] = form
+            args.insert(0, form)
+
+        function = self.lookupFunction(methodName)
+
+        if not function:
+            self._methodNotFound(request, methodName)
+            return server.NOT_DONE_YET
+        else:
+            if hasattr(function, "useKeywords"):
+                keywords = {}
+                for k, v in kwargs.items():
+                    keywords[str(k)] = v
+                d = defer.maybeDeferred(function, **keywords)
+            else:
+                d = defer.maybeDeferred(function, *args)
+
+        d.addCallback(self._gotResult, request, meth)
+        d.addErrback(self._gotError, request, meth)
+        return server.NOT_DONE_YET
 
     def _gotResult(self, result, request, methodName):
         # hack twisted.web.soap here:
         # do not wrap result in a <Result> element
-        response = SOAPpy.buildSOAP(kw={'%sResponse' % methodName: result},
-                                  encoding=self.encoding)
+        response = SOAPpy.buildSOAP(
+                kw={'%sResponse' % methodName: result},
+                encoding=self.encoding)
         self._sendResponse(request, response)
 
     def soap_StartSession(self, transfermode, macaddress, cnonce,
             transfermodetimestamp):
         log.msg("StartSession", macaddress)
+
         m = hashlib.md5()
         m.update(binascii.unhexlify(macaddress + cnonce +
             self.cards[macaddress]["uploadkey"]))
             # fails with keyerror if unknown mac
         credential = m.hexdigest()
+
         snonce = "%x" % random.getrandbits(128)
         self.cards[macaddress]["snonce"] = snonce
+
         return {"credential": credential,
                 "snonce": snonce,
                 "transfermode": transfermode,
                 "transfermodetimestamp": transfermodetimestamp,
                 "upsyncallowed": "false"}
+
     soap_StartSession.useKeywords = True
 
     def soap_GetPhotoStatus(self, macaddress, credential, filesignature,
             flags, filesize, filename):
         log.msg("GetPhotoStatus", macaddress, filename)
+
         m = hashlib.md5()
         m.update(binascii.unhexlify(macaddress + 
             self.cards[macaddress]["uploadkey"] +
             self.cards[macaddress]["snonce"]))
         want = m.hexdigest()
         assert credential == want, (credential, want)
+
         return {"fileid": 1, "offset": 0}
+
     soap_GetPhotoStatus.useKeywords = True
    
-    def render_upload(self, request):
-        typ, pdict = cgi.parse_header(
-                request.requestHeaders.getRawHeaders("content-type")[0])
-        form = cgi.parse_multipart(request.content, pdict)
-
-        p, header, body, attrs = SOAPpy.parseSOAPRPC(
-            form['SOAPENVELOPE'][0], 1, 1, 1)
-        req_params = p._asdict()
-        macaddress = req_params["macaddress"]
-        encryption = req_params["encryption"]
-        filename = req_params["filename"]
-        flags = req_params["flags"]
-        filesize = req_params["filesize"]
-        filesignature = req_params["filesignature"]
-        fileid = req_params["fileid"]
-
+    def soap_UploadPhoto(self, form, macaddress, encryption, filename,
+            flags, filesize, filesignature, fileid):
         m = hashlib.md5()
         m.update(checksum(form['FILENAME'][0]) +
                 binascii.unhexlify(self.cards[macaddress]["uploadkey"]))
         got = m.hexdigest()
-        want = form['INTEGRITYDIGEST'][0]
-        if got == want:
-            tar = StringIO.StringIO(form['FILENAME'][0])
-            tarfi = tarfile.open(fileobj=tar)
-            output = os.path.expanduser(self.cards[macaddress]["folder"])
-            if self.cards[macaddress]["date_folders"]:
-                # dat = datetime.datetime.fromtimestamp(xxx) # FIXME
-                dat = datetime.datetime.now()
-                dat = dat.strftime(self.cards[macaddress]["date_format"])
-                output = os.path.join(output, dat)
-                if not os.access(output, os.R_OK):
-                    os.mkdir(output)
-            tarfi.extractall(output)
-            names = [os.path.join(output, name) for name
-                    in tarfi.getnames()]
-            reactor.callLater(0, self.handle_upload,
-                    macaddress, names)
-            success = "true"
-            log.msg("successful upload", macaddress, names)
-        else:
-            success = "false"
-            log.msg("upload verification failed", macaddress, got, want)
-        resp = SOAPpy.buildSOAP(kw={"UploadPhotoResponse":
-                    {"success": success}})
-        return resp
 
-    def handle_upload(self, macaddress, names):
-        d = succeed((self.cards[macaddress], names))
+        want = form['INTEGRITYDIGEST'][0]
+
+        if got is not want:
+            log.msg("upload verification failed", macaddress, got, want)
+            return {"success": "false"}
+        else:
+            tar = StringIO.StringIO(form['FILENAME'][0])
+            names = self.unpack_tar(macaddress, tar)
+            reactor.callLater(0, self.run_actions, macaddress, names)
+
+            log.msg("successful upload", macaddress, names)
+            return {"success": "true"}
+
+    soap_UploadPhoto.useKeywords = True
+
+    def unpack_tar(self, macaddress, tar):
+        tarfi = tarfile.open(fileobj=tar)
+        output = os.path.expanduser(self.cards[macaddress]["folder"])
+
+        if self.cards[macaddress]["date_folders"]:
+            # dat = datetime.datetime.fromtimestamp(xxx) # FIXME
+            dat = datetime.datetime.now()
+            dat = dat.strftime(self.cards[macaddress]["date_format"])
+            output = os.path.join(output, dat)
+            if not os.access(output, os.R_OK):
+                os.mkdir(output)
+
+        tarfi.extractall(output)
+
+        names = [os.path.join(output, name) for name
+                in tarfi.getnames()]
+        return names
+
+    def run_actions(self, macaddress, names):
+        d = defer.succeed((self.cards[macaddress], names))
         for action in self.actions[macaddress]:
             d.addCallback(action)
         d.addCallback(lambda _: log.msg("actions completed on", names))

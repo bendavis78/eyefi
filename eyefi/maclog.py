@@ -20,9 +20,6 @@
 
 import os
 
-from eyefi.google_loc import google_loc
-from eyefi.exif_gps import write_gps
-
 
 def mac_fmt(mac):
     return ":".join(mac[2*i:2*i+2] for i in range(6))
@@ -68,37 +65,3 @@ def photo_macs(photo, aps):
                          "age": seen[0]*1000,
                          "signal_to_noise": seen[1]})
     return macs
-
-
-def write_loc(loc, photo):
-    loc = loc["location"]
-    write_gps(photo,
-        loc["latitude"], loc["longitude"], loc.get("altitude",
-            None), "WGS-84", loc.get("accuracy", None))
-    return loc, photo
-
-
-def tag_photo(photoname, log):
-    dir, name = os.path.split(photoname)
-    data = list(eyefi_parse(log))
-    for photos, aps in data[::-1]: # take newest first
-        if name in photos:
-            macs = photo_macs(photos[name], aps)
-            loc = google_loc(wifi_towers=macs)
-            loc.addCallback(write_loc, photoname)
-            return photos[name], loc
-
-
-def main():
-    import sys
-    from twisted.internet import reactor
-    from twisted.python import log
-
-    log.startLogging(sys.stdout)
-    photo, d = tag_photo(*sys.argv[1:])
-    d.addBoth(log.msg).addBoth(lambda e: reactor.callLater(0,
-        reactor.stop))
-    reactor.run()
-
-if __name__ == '__main__':
-    main()

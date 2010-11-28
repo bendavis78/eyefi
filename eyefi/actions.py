@@ -24,8 +24,15 @@ from twisted.python import log
 from twisted.internet import utils
 from twisted.internet.defer import DeferredList
 
-from eyefi.maclog import tag_photo
+# geotag
+from eyefi.maclog import eyefi_parse, photo_macs
+from eyefi.google_loc import google_loc
+from eyefi.exif_gps import write_gps
+
+# flickr_upload
 from eyefi.twisted_flickrapi import TwistedFlickrAPI
+
+# extract_preview
 import pyexiv2
 assert pyexiv2.version_info[1] >= 2, "need at least pyexiv 0.2.2"
 
@@ -91,10 +98,31 @@ class Geotag(Action):
     name = "geotag"
 
     def handle_photo(self, card, files):
-        photo, d = tag_photo(*files)
-        d.addCallback(log.msg)
-        d.addCallback(lambda _: (card, files))
-        return d
+        log = [f for f in files if f.lower().endswith(".log")][0]
+        photoname = [f for f in files if f is not log][0]
+        dir, name = os.path.split(photoname)
+        data = list(eyefi_parse(log))
+        for photos, aps in data[::-1]: # take newest first
+            if name in photos:
+                macs = photo_macs(photos[name], aps)
+                loc = google_loc(wifi_towers=macs)
+                loc.addCallback(self.write_loc, photoname,
+                        sidecar=card["geotag_sidecar"])
+                loc.addCallback(log.msg, "geotagged")
+                if card["geotag_delete_log"]:
+                    loc.addCallback(lambda _: os.remove(log))
+                loc.addCallback(lambda _: (card, files))
+                return loc
+        return card, files # no log
+
+    @staticmethod
+    def _write_loc(loc, photo, sidecar=True):
+        loc = loc["location"]
+        write_gps(photo,
+            loc["latitude"], loc["longitude"], loc.get("altitude",
+                None), "WGS-84", loc.get("accuracy", None), sidecar)
+        return loc, photo
+
 
 
 @_register_action
@@ -109,10 +137,24 @@ class Run(Action):
         return d
 
 
+@_register_action
+class Geeqie(Action):
+    name = "geeqie"
+
+    def __init__(self, cfg, card):
+        self.geeqie = utils.getProcessOutput("geeqie", ["--fullscreen"])
+        self.geeqie.addCallback(log.msg, "geeqie terminated")
+ 
+    def handle_photo(self, card, files):
+        d = utils.getProcessOutput(
+                "geeqie", ["--remote", files[0]])
+        d.addBoth(lambda _: (card, files)) # succeeds
+        return d
+
 
 @_register_action
-class FlickrUpload(Action):
-    name = "flickr_upload"
+class Flickr(Action):
+    name = "flickr"
 
     def __init__(self, cfg, card):
         key, secret = cfg.get("__main__", "flickr_key").split(":")
@@ -127,6 +169,6 @@ class FlickrUpload(Action):
                 ds.append(self.flickr.upload(str(file),
                 is_public=card["flickr_public"] and "1" or "0"
                     ).addCallback(log.msg, "upload to flickr"))
-        d = DeferredList(ds, fireOnOneErrback=1, consumeErrors=1)
+        d = DeferredList(ds, fireOnOneErrback=1)
         d.addCallback(lambda _: (card, files))
         return d
