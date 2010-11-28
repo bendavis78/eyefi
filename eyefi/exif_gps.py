@@ -84,32 +84,34 @@ def write_gps(filename, lat, lon, alt=None, datum="WGS-84",
     if dop is not None:
         i[prefix + "GPSDOP"] = pyexiv2.Rational(int(dop*10), 10)
 
+    if lat < 0:
+        r = "S";
+        lat *= -1
+    else:
+        r = "N";
+
     if xmp:
         b, a = math.modf(lat)
         c, b = math.modf(b*60)
         c = int(c*60)
         i[prefix + "GPSLatitude"] = pyexiv2.utils.GPSCoordinate(a, b, c, r)
     else:
-        if lat < 0:
-            r = "S";
-            lat *= -1
-        else:
-            r = "N";
         i[prefix + "GPSLatitudeRef"] = r
         i[prefix + "GPSLatitude"] = pyexiv2.utils.Rational(int(lat*1e6),
                 int(1e6))
 
+    if lon < 0:
+        r = "W";
+        lon *= -1
+    else:
+        r = "E";
+     
     if xmp:
         b, a = math.modf(lon)
         c, b = math.modf(b*60)
         c = int(c*60)
         i[prefix + "GPSLongitude"] = pyexiv2.utils.GPSCoordinate(a, b, c, r)
     else:
-        if lon < 0:
-            r = "W";
-            lon *= -1
-        else:
-            r = "E";
         i[prefix + "GPSLongitudeRef"] = r
         i[prefix + "GPSLongitude"] = pyexiv2.utils.Rational(int(lon*1e6),
                 int(1e6))

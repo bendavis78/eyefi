@@ -130,11 +130,6 @@ class Geotag(Action):
 class Geeqie(Action):
     name = "geeqie"
 
-    def __init__(self, cfg, card):
-        self.geeqie = utils.getProcessOutput("/usr/bin/geeqie",
-                ["--fullscreen"], os.environ)
-        self.geeqie.addErrback(log.msg, "geeqie terminated")
- 
     def handle_photo(self, card, files):
         d = utils.getProcessValue("/usr/bin/geeqie",
                 ["--remote", str(files[0])], os.environ)
