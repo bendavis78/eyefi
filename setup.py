@@ -21,7 +21,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = "eyefi",
-    version = "0.1",
+    version = "0.1-r1",
     packages = find_packages(
         exclude=["*.tests", "*.tests.*", "tests.*", "tests"],
     ),
