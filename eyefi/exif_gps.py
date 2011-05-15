@@ -45,7 +45,8 @@ def get_sidecar(filename, copy=True, name=None):
     if name is None:
         name = os.path.splitext(filename)[0]+".xmp"
     if not os.access(name, os.R_OK):
-        __sidecar_template.write(name)
+        __sidecar_template.write(name, 
+                encoding="utf-8", xml_declaration=True)
     i = pyexiv2.metadata.ImageMetadata(filename)
     i.read()
     j = pyexiv2.metadata.ImageMetadata(name)
