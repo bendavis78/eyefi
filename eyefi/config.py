@@ -19,7 +19,8 @@
 
 import os
 
-from configglue.pyschema import schemaconfigglue, ini2schema
+from configglue.glue import schemaconfigglue
+from configglue.inischema.glue import ini2schema
 from twisted.python import usage
 from pkg_resources import Requirement, resource_filename
 
