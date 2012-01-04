@@ -19,7 +19,6 @@
 
 import os
 
-from configglue.glue import schemaconfigglue
 from configglue.inischema.glue import ini2schema
 from twisted.python import usage
 from pkg_resources import Requirement, resource_filename
@@ -32,7 +31,6 @@ confs = ("/etc/eyefi.conf",
 
 def glue_config(confs=confs, base=base):
     config_parser = ini2schema(open(base))
-    # op, opts, args = schemaconfigglue(config_parser)
     config_parser.read(confs)
     return config_parser
 
