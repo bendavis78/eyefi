@@ -119,10 +119,11 @@ class Geotag(Action):
 
     @staticmethod
     def _write_loc(loc, photo, sidecar=True, xmp=False):
-        loc = loc["location"]
-        write_gps(photo,
-            loc["latitude"], loc["longitude"], loc.get("altitude", None),
-            "WGS-84", loc.get("accuracy", None), sidecar, xmp)
+        if sidecar or photo.lower().endswith(".jpg"):
+            loc = loc["location"]
+            write_gps(photo,
+                loc["latitude"], loc["longitude"], loc.get("altitude", None),
+                "WGS-84", loc.get("accuracy", None), sidecar, xmp)
         return loc, photo
 
 
