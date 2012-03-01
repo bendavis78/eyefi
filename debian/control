@@ -1,19 +1,18 @@
 Source: python-eyefi
 Section: python
 Priority: optional
-Maintainer: Robert Jordens <jordens@debian.org>
-Build-Depends: cdbs,
- python-central (>= 0.6.0),
- python,
+Maintainer: Robert Jordens <jordens@phys.ethz.ch>
+Build-Depends: cdbs (>= 0.4.90~),
+ python (>= 2.6.6-3~),
  python-setuptools,
  debhelper (>= 5)
 XS-Python-Version: >=2.5
-Standards-Version: 3.9.1.0
+Standards-Version: 3.9.3
 
 Package: python-eyefi
 Architecture: all
-XB-Python-Version: ${python:Versions}
 Depends: ${misc:Depends}, ${python:Depends}
+Provides: ${python:Provides}
 Description: EyeFi SDHC+WiFi card server framework
  The EyeFi cards include both some 2-8GB of SDHC storage and an
  embedded microprocessor with WiFi (802.11bgn) that can upload

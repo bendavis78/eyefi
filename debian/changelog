@@ -1,5 +1,5 @@
-python-eyefi (0.1-1) unstable; urgency=low
+python-eyefi (0.1) unstable; urgency=low
 
   * Initial packaging
 
- -- Robert Jordens <jordens@debian.org>  Sun, 28 Nov 2010 23:16:38 +0100
+ -- Robert Jordens <jordens@phys.ethz.ch>  Thu, 01 Mar 2012 00:42:18 -0700
