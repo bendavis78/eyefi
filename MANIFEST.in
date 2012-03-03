@@ -1,3 +1,4 @@
 include conf/*.conf
 include init/eyefi
 include AUTHORS COPYING README.rst
+include doc/*.rst doc/*.py
