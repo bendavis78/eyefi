@@ -22,9 +22,8 @@ from setuptools import setup, find_packages
 setup(
     name = "eyefi",
     version = "0.2",
-    packages = find_packages(
-        exclude=["*.tests", "*.tests.*", "tests.*", "tests"],
-    ),
+    packages = find_packages(),
+    namespace_packages = ["twisted", "twisted.plugins"],
     install_requires = [
         "Twisted-Web", "Twisted-Core",
         "SOAPpy",
@@ -40,6 +39,7 @@ setup(
     package_data = {
         "eyefi": ["../conf/*.conf"],
     },
+    include_package_data = True,
     # scripts = [],
     entry_points = {
         'console_scripts': [
