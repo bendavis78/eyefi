@@ -22,7 +22,7 @@ from setuptools import setup, find_packages
 setup(
     name = "eyefi",
     version = "0.2",
-    packages = find_packages(),
+    packages = find_packages(exclude=["tests"]),
     namespace_packages = ["twisted", "twisted.plugins"],
     install_requires = [
         "Twisted-Web", "Twisted-Core",
