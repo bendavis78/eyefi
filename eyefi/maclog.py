@@ -28,19 +28,27 @@ def mac_fmt(mac):
 def eyefi_parse(logfile):
     photos, aps = {}, {}
     for line in open(logfile):
-        power_secs, secs, event = line.strip().split(",", 2)
+        try:
+            power_secs, secs, event = line.strip().split(",", 2)
+        except ValueError:
+            # corrupted line
+            pass
         event = event.split(",")
         event, args = event[0], event[1:]
         if event == "POWERON":
             yield photos, aps
             photos, aps = {}, {}
         elif event in ("AP", "NEWAP"):
-            mac, strength, data = args
+            mac, strength = args[:2]
+            if len(args) > 2:
+                data = int(args[2], 16)
+            else: # GPS v1, lp#973691
+                data = 0
             aps.setdefault(mac, []).append({
                 "power_secs": int(power_secs),
                 "secs": int(secs),
                 "signal_to_noise": int(strength),
-                "data": int(data, 16),
+                "data": data,
                 })
         elif event == "NEWPHOTO":
             filename, size = args
@@ -65,3 +73,9 @@ def photo_macs(photo, aps):
                          "age": seen[0]*1000,
                          "signal_to_noise": seen[1]})
     return macs
+
+if __name__ == "__main__":
+    import sys
+    for f in sys.argv[1:]:
+        for l in eyefi_parse(f):
+            print l
