@@ -97,6 +97,9 @@ class ExtractPreview(Action):
 class Geotag(Action):
     name = "geotag"
 
+    def __init__(self, cfg, card):
+        self.key = cfg.get("__main__", "googleapis_key")
+ 
     def handle_photo(self, card, files):
         logname = [f for f in files if f.lower().endswith(".log")][0]
         photoname = [f for f in files if f is not log][0]
@@ -105,7 +108,7 @@ class Geotag(Action):
         for photos, aps in data[::-1]: # take newest first
             if name in photos:
                 macs = photo_macs(photos[name], aps)
-                loc = google_loc(wifi_towers=macs)
+                loc = google_loc(self.key, macs)
                 loc.addCallback(self._write_loc, photoname,
                         sidecar=card["geotag_sidecar"],
                         xmp=card["geotag_xmp"])

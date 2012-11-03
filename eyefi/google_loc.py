@@ -22,21 +22,16 @@
 import simplejson
 from twisted.web.client import getPage
 
-LOC_BASE_URL = 'http://www.google.com/loc/json'
+LOC_BASE_URL = "https://www.googleapis.com/geolocation/v1/geolocate"
 
-
-def google_loc(*macs, **args):
+def google_loc(key, macs):
     """
-    http://code.google.com/p/gears/wiki/GeolocationAPI
+    https://developers.google.com/maps/documentation/business/geolocation/
     """
-    base = {
-        "version": "1.1.0",
-        "host": "maps.google.com",
-        }
-    base.update(args)
+    base = {"wifiAccessPoints": [],}
     for mac in macs:
-        base.setdefault("wifi_towers", []).append({"mac_address": mac})
-    d = getPage(LOC_BASE_URL, method="POST",
+        base["wifiAccessPoints"].append({"macAddress": mac})
+    d = getPage("%s?key=%s" % (LOC_BASE_URL, key), method="POST",
             postdata=simplejson.dumps(base))
     d.addCallback(simplejson.loads)
     return d
@@ -46,7 +41,7 @@ def main():
     from twisted.python import log
     import sys
     log.startLogging(sys.stdout)
-    google_loc(sys.argv[1:], request_address=True).addBoth(
+    google_loc(key=sys.argv[1], macs=sys.argv[2:]).addBoth(
             log.msg).addBoth(lambda e: reactor.callLater(0, reactor.stop))
     reactor.run()
 
