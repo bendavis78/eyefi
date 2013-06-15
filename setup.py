@@ -25,7 +25,7 @@ setup(
     packages = find_packages(exclude=["tests"]),
     namespace_packages = ["twisted", "twisted.plugins"],
     install_requires = [
-        "Twisted-Web", "Twisted-Core",
+        "Twisted",
         "SOAPpy",
         "simplejson",
         # "pyexiv2>=0.2", # ignores ubuntu installation
